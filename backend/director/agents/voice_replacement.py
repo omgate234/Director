@@ -2,7 +2,6 @@ import logging
 import os
 import requests
 import uuid
-import base64
 from director.agents.base import BaseAgent, AgentResponse, AgentStatus
 from director.core.session import Session, MsgStatus, TextContent, VideoContent, VideoData
 from director.tools.elevenlabs import ElevenLabsTool
@@ -12,7 +11,7 @@ from videodb.asset import VideoAsset, AudioAsset
 from videodb.timeline import Timeline
 logger = logging.getLogger(__name__)
 
-CLONE_VOICE_AGENT_PARAMETERS = {
+VOICE_REPLACEMENT_AGENT_PARAMETERS = {
     "type": "object",
     "properties": {
         "sample_audios": {
@@ -51,11 +50,11 @@ CLONE_VOICE_AGENT_PARAMETERS = {
     "required": ["sample_audios", "is_authorized_to_clone_voice", "collection_id", "video_id", "name_of_voice"],
 }
 
-class CloneVoiceVideoAgent(BaseAgent):
+class VoiceReplacementAgent(BaseAgent):
     def __init__(self, session: Session, **kwargs):
-        self.agent_name = "clone_voice_video"
+        self.agent_name = "voice_replacement"
         self.description = "This agent is used to clone the voice of the given by the user and overlay it on top of the video given. The user must be authorised to clone the voice"
-        self.parameters = CLONE_VOICE_AGENT_PARAMETERS
+        self.parameters = VOICE_REPLACEMENT_AGENT_PARAMETERS
         self.timeline: Timeline | None = None
         super().__init__(session=session, **kwargs)
         

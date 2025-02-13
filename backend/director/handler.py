@@ -26,7 +26,7 @@ from director.agents.transcription import TranscriptionAgent
 from director.agents.comparison import ComparisonAgent
 from director.agents.web_search_agent import WebSearchAgent
 from director.agents.clone_voice import CloneVoiceAgent
-from director.agents.clone_voice_video import CloneVoiceVideoAgent
+from backend.director.agents.voice_replacement import VoiceReplacementAgent
 
 
 from director.core.session import Session, InputMessage, MsgStatus
@@ -70,7 +70,7 @@ class ChatHandler:
             ComparisonAgent,
             WebSearchAgent,
             CloneVoiceAgent,
-            CloneVoiceVideoAgent
+            VoiceReplacementAgent
         ]
 
     def add_videodb_state(self, session):
