@@ -16,8 +16,12 @@ class GoogleChatModel(str, Enum):
     """Enum for Google Gemini Chat models"""
 
     GEMINI_15_FLASH = "gemini-1.5-flash"
+    GEMINI_15_FLASH_002 = "gemini-1.5-flash-002"
     GEMINI_15_PRO = "gemini-1.5-pro"
-    GEMINI_15_ULTRA = "gemini-1.5-ultra"
+    GEMINI_15_PRO_002 = "gemini-1.5-pro-002"
+    GEMINI_20_FLASH = "gemini-2.0-flash"
+    GEMINI_20_FLASH_001 = "gemini-2.0-flash-001"
+    GEMINI_20_PRO = "gemini-2.0-pro-exp"
 
 
 class GoogleAIConfig(BaseLLMConfig):
@@ -31,7 +35,7 @@ class GoogleAIConfig(BaseLLMConfig):
     llm_type: str = LLMType.GOOGLEAI
     api_key: str = ""
     api_base: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
-    chat_model: str = Field(default=GoogleChatModel.GEMINI_15_FLASH)
+    chat_model: str = Field(default=GoogleChatModel.GEMINI_20_FLASH)
     max_tokens: int = 4096
     temperature: float = 0.7
     top_p: float = 1.0
@@ -140,8 +144,6 @@ class GoogleAI(BaseLLM):
             "temperature": self.config.temperature or 0.7,
             "max_tokens": self.config.max_tokens or 4096,
             "top_p": self.config.top_p or 1.0,
-            "stop": stop if stop else None,
-            "timeout": self.config.timeout or 30,
         }
 
         if tools:
