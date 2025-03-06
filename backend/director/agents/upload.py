@@ -15,34 +15,34 @@ from director.tools.videodb_tool import VideoDBTool
 
 logger = logging.getLogger(__name__)
 
-UPLOAD_AGENT_PARAMETERS = {
-    "type": "object",
-    "properties": {
-        "source": {
-            "type": "string",
-            "description": "URL or local path to upload the content",
-        },
-        "source_type": {
-            "type": "string",
-            "description": "Type of given source.",
-            "enum": ["url", "local_file"],
-        },
-        "name": {
-            "type": "string",
-            "description": "Name of the content to upload, optional parameter",
-        },
-        "media_type": {
-            "type": "string",
-            "enum": ["video", "audio", "image"],
-            "description": "Type of media to upload, default is video",
-        },
-        "collection_id": {
-            "type": "string",
-            "description": "Collection ID to upload the content",
-        },
-    },
-    "required": ["url", "media_type", "collection_id"],
-}
+# UPLOAD_AGENT_PARAMETERS = {
+#     "type": "object",
+#     "properties": {
+#         "source": {
+#             "type": "string",
+#             "description": "URL or local path to upload the content",
+#         },
+#         "source_type": {
+#             "type": "string",
+#             "description": "Type of given source.",
+#             "enum": ["url", "local_file"],
+#         },
+#         "name": {
+#             "type": "string",
+#             "description": "Name of the content to upload, optional parameter",
+#         },
+#         "media_type": {
+#             "type": "string",
+#             "enum": ["video", "audio", "image"],
+#             "description": "Type of media to upload, default is video",
+#         },
+#         "collection_id": {
+#             "type": "string",
+#             "description": "Collection ID to upload the content",
+#         },
+#     },
+#     "required": ["url", "media_type", "collection_id"],
+# }
 
 
 class UploadAgent(BaseAgent):
@@ -54,7 +54,7 @@ class UploadAgent(BaseAgent):
             "The media content can be a video, audio, or image file. "
             "Youtube playlist and links are also supported. "
         )
-        self.parameters = UPLOAD_AGENT_PARAMETERS
+        self.parameters = self.get_parameters()
         super().__init__(session=session, **kwargs)
 
     def _upload(self, source: str, source_type: str, media_type: str, name: str = None):

@@ -35,10 +35,10 @@ DUBBING_AGENT_PARAMETERS = {
             "description": "The dubbing engine to use. Default is 'elevenlabs'. Possible values include 'elevenlabs'.",
             "default": "elevenlabs",
         },
-        "engine_params": {
-            "type": "object",
-            "description": "Optional parameters for the dubbing engine.",
-        },
+        # "engine_params": {
+        #     "type": "object",
+        #     "description": "Optional parameters for the dubbing engine.",
+        # },
     },
     "required": [
         "video_id",
