@@ -41,7 +41,7 @@ UPLOAD_AGENT_PARAMETERS = {
             "description": "Collection ID to upload the content",
         },
     },
-    "required": ["media_type", "collection_id"],
+    "required": ["source", "media_type", "collection_id"],
 }
 
 
@@ -59,14 +59,6 @@ class UploadAgent(BaseAgent):
 
     def _upload(self, source: str, source_type: str, media_type: str, name: str = None):
         """Upload the media with the given URL."""
-
-        if not source or not isinstance(source, str) or not source.strip():
-            return AgentResponse(
-                status=AgentStatus.ERROR,
-                message="Invalid source: A valid URL or local path is required for upload.",
-                data={},
-            )      
-
         try:
             if media_type == "video":
                 content = VideoContent(
@@ -168,20 +160,6 @@ class UploadAgent(BaseAgent):
         :param name: str, optional - Name required for uploaded file.
         :return: AgentResponse - The response containing information about the upload operation.
         """
-
-        if not source or not isinstance(source, str) or not source.strip():
-            return AgentResponse(
-                status=AgentStatus.ERROR,
-                message="Invalid source: A valid URL or local path is required.",
-                data={},
-            )
-
-        if source_type not in ["url", "local_file"]:
-            return AgentResponse(
-                status=AgentStatus.ERROR,
-                message=f"Invalid source type '{source_type}'. Must be 'url' or 'local_file'.",
-                data={},
-            )
 
         self.videodb_tool = VideoDBTool(collection_id=collection_id)
 
