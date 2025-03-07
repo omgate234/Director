@@ -4,7 +4,7 @@ from enum import Enum
 from pydantic import Field, field_validator, FieldValidationInfo
 from pydantic_settings import SettingsConfigDict
 
-from director.core.session import RoleTypes
+
 from director.llm.base import BaseLLM, BaseLLMConfig, LLMResponse, LLMResponseStatus
 from director.constants import (
     LLMType,
@@ -69,15 +69,8 @@ class GoogleAI(BaseLLM):
         """Format the messages to the format that Google Gemini expects."""
         formatted_messages = []
 
-        if messages and messages[0]["role"] == RoleTypes.system.value:
-            messages = messages[1:]
-
         for message in messages:
-            message["content"] = message.get("content", "") or ""
-
-            if message["role"] == RoleTypes.assistant.value and message.get(
-                "tool_calls"
-            ):
+            if message["role"] == "assistant" and message.get("tool_calls"):
                 formatted_messages.append(
                     {
                         "role": message["role"],
@@ -86,27 +79,12 @@ class GoogleAI(BaseLLM):
                             {
                                 "id": tool_call["id"],
                                 "function": {
-                                    "name": tool_call.get("tool", {}).get("name", ""),
-                                    "arguments": json.dumps(
-                                        tool_call.get("tool", {}).get("arguments", {})
-                                    ),
+                                    "name": tool_call["tool"]["name"],
+                                    "arguments": json.dumps(tool_call["tool"]["arguments"]),
                                 },
                                 "type": tool_call["type"],
                             }
                             for tool_call in message["tool_calls"]
-                        ],
-                    }
-                )
-            elif message["role"] == RoleTypes.tool.value:
-                formatted_messages.append(
-                    {
-                        "role": RoleTypes.tool.value,
-                        "content": [
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": message["tool_call_id"],
-                                "content": message["content"],
-                            }
                         ],
                     }
                 )
@@ -116,7 +94,34 @@ class GoogleAI(BaseLLM):
         return formatted_messages
 
     def _format_tools(self, tools: list):
-        """Format the tools to the format that Gemini expects."""
+        """Format the tools to the format that Gemini expects.
+
+        **Example**::
+
+            [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "get_weather",
+                        "description": "Get the weather in a given location",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "location": {
+                                    "type": "string",
+                                    "description": "The city and state, e.g. Chicago, IL"
+                                },
+                                "unit": {
+                                    "type": "string",
+                                    "enum": ["celsius", "fahrenheit"]
+                                }
+                            },
+                            "required": ["location"]
+                        }
+                    }
+                }
+            ]
+        """
         return [
             {
                 "type": "function",
@@ -130,10 +135,11 @@ class GoogleAI(BaseLLM):
             if tool.get("name")
         ]
 
-    def chat_completions(
-        self, messages: list, tools: list = [], response_format=None
-    ):
-        """Get chat completions using Gemini."""
+    def chat_completions(self, messages: list, tools: list = [], response_format=None):
+        """Get chat completions using Gemini.
+
+        docs: https://ai.google.dev/gemini-api/docs/openai
+        """
         params = {
             "model": self.chat_model,
             "messages": self._format_messages(messages),
@@ -155,32 +161,21 @@ class GoogleAI(BaseLLM):
             print(f"Error: {e}")
             return LLMResponse(content=f"Error: {e}")
 
-        choice = response.choices[0] if response.choices else None
-        content = (
-            choice.message.content
-            if choice and choice.message.content
-            else "No response"
-        )
-
-        tool_calls = (
-            [
-                {
-                    "id": tc.id,
-                    "tool": {
-                        "name": tc.function.name,
-                        "arguments": json.loads(tc.function.arguments),
-                    },
-                    "type": tc.type,
-                }
-                for tc in choice.message.tool_calls
-            ]
-            if choice and choice.message.tool_calls
-            else []
-        )
-
         return LLMResponse(
-            content=content,
-            tool_calls=tool_calls,
-            finish_reason=choice.finish_reason if choice else "",
+            content=response.choices[0].message.content or "",
+            tool_calls=[
+                {
+                    "id": tool_call.id,
+                    "tool": {
+                        "name": tool_call.function.name,
+                        "arguments": json.loads(tool_call.function.arguments),
+                    },
+                    "type": tool_call.type,
+                }
+                for tool_call in response.choices[0].message.tool_calls
+            ]
+            if response.choices[0].message.tool_calls
+            else [],
+            finish_reason=response.choices[0].finish_reason,
             status=LLMResponseStatus.SUCCESS,
         )
