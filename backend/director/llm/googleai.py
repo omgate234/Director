@@ -135,7 +135,9 @@ class GoogleAI(BaseLLM):
             if tool.get("name")
         ]
 
-    def chat_completions(self, messages: list, tools: list = [], response_format=None):
+    def chat_completions(
+        self, messages: list, tools: list = [], stop=None, response_format=None
+    ):
         """Get chat completions using Gemini.
 
         docs: https://ai.google.dev/gemini-api/docs/openai
@@ -146,6 +148,7 @@ class GoogleAI(BaseLLM):
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
             "top_p": self.top_p,
+            "timeout": self.timeout,
         }
 
         if tools:
@@ -177,5 +180,8 @@ class GoogleAI(BaseLLM):
             if response.choices[0].message.tool_calls
             else [],
             finish_reason=response.choices[0].finish_reason,
+            send_tokens=response.usage.prompt_tokens,
+            recv_tokens=response.usage.completion_tokens,
+            total_tokens=response.usage.total_tokens,
             status=LLMResponseStatus.SUCCESS,
         )
