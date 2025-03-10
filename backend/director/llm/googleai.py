@@ -74,13 +74,17 @@ class GoogleAI(BaseLLM):
                 formatted_messages.append(
                     {
                         "role": message["role"],
-                        "content": message["content"],
+                        "content": message["content"]
+                        if message["content"]
+                        else "[Processing request...]",
                         "tool_calls": [
                             {
                                 "id": tool_call["id"],
                                 "function": {
                                     "name": tool_call["tool"]["name"],
-                                    "arguments": json.dumps(tool_call["tool"]["arguments"]),
+                                    "arguments": json.dumps(
+                                        tool_call["tool"]["arguments"]
+                                    ),
                                 },
                                 "type": tool_call["type"],
                             }
