@@ -59,7 +59,7 @@ class GoogleAI(BaseLLM):
             raise ImportError("Please install OpenAI python library.")
 
         self.client = openai.OpenAI(
-            api_key=self.api_key, base_url=self.api_base
+            api_key=None, base_url=self.api_base
         )
 
     def _format_messages(self, messages: list):
@@ -144,7 +144,7 @@ class GoogleAI(BaseLLM):
         params = {
             "model": self.chat_model,
             "messages": self._format_messages(messages),
-            "temperature": self.temperature,
+            "temperature": 0.5,
             "max_tokens": self.max_tokens,
             "top_p": self.top_p,
             "timeout": self.timeout,
