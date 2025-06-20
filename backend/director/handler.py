@@ -70,7 +70,7 @@ class ChatHandler:
             CodeAssistantAgent,
             WebSearchAgent,
             VoiceReplacementAgent,
-            PricingAgent
+            PricingAgent,
         ]
 
     def add_videodb_state(self, session):
@@ -148,7 +148,7 @@ class VideoDBHandler:
     def upload(self, source, source_type="url", media_type="video", name=None):
         return self.videodb_tool.upload(source, source_type, media_type, name)
 
-    def get_collection(self, collection_id):
+    def get_collection(self):
         """Get a collection by ID."""
         return self.videodb_tool.get_collection()
 
@@ -213,7 +213,7 @@ class ConfigHandler:
         """Check the configuration of the server."""
         videodb_configured = True if os.getenv("VIDEO_DB_API_KEY") else False
 
-        db = load_db(os.getenv("SERVER_DB_TYPE",  os.getenv("DB_TYPE", "sqlite")))
+        db = load_db(os.getenv("SERVER_DB_TYPE", os.getenv("DB_TYPE", "sqlite")))
         db_configured = db.health_check()
         return {
             "videodb_configured": videodb_configured,
