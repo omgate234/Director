@@ -153,7 +153,8 @@ class SQLiteDB(BaseDB):
 
     def get_conversations(self, session_id: str) -> list:
         self.cursor.execute(
-            "SELECT * FROM conversations WHERE session_id = ?", (session_id,)
+            "SELECT * FROM conversations WHERE session_id = ? ORDER BY created_at ASC",
+            (session_id,),
         )
         rows = self.cursor.fetchall()
         conversations = []
@@ -175,7 +176,7 @@ class SQLiteDB(BaseDB):
         :rtype: list
         """
         self.cursor.execute(
-            "SELECT context_data FROM context_messages WHERE session_id = ?",
+            "SELECT context_data FROM context_messages WHERE session_id = ? ORDER BY created_at ASC",
             (session_id,),
         )
         result = self.cursor.fetchone()
