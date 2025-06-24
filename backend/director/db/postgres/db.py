@@ -144,7 +144,7 @@ class PostgresDB(BaseDB):
 
     def get_context_messages(self, session_id: str) -> list:
         self.cursor.execute(
-            "SELECT context_data FROM context_messages WHERE session_id = %s ORDER BY created_at ASC",
+            "SELECT context_data FROM context_messages WHERE session_id = %s",
             (session_id,),
         )
         result = self.cursor.fetchone()

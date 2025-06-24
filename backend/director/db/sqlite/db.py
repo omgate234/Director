@@ -176,7 +176,7 @@ class SQLiteDB(BaseDB):
         :rtype: list
         """
         self.cursor.execute(
-            "SELECT context_data FROM context_messages WHERE session_id = ? ORDER BY created_at ASC",
+            "SELECT context_data FROM context_messages WHERE session_id = ?",
             (session_id,),
         )
         result = self.cursor.fetchone()
