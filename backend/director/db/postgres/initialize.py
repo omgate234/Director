@@ -70,10 +70,9 @@ def initialize_postgres():
         cursor.execute(CREATE_SESSIONS_TABLE)
         cursor.execute(CREATE_CONVERSATIONS_TABLE)
         cursor.execute(CREATE_CONTEXT_MESSAGES_TABLE)
-        conn.commit()
-
         cursor.execute("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS name TEXT")
         cursor.execute("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE")
+        conn.commit()
         logger.info("PostgreSQL tables created successfully")
     except Exception as e:
         logger.exception(f"Error creating PostgreSQL tables: {e}")

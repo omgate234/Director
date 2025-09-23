@@ -243,7 +243,7 @@ class SQLiteDB(BaseDB):
         self.conn.commit()
         return self.cursor.rowcount > 0
 
-    def delete_session(self, session_id: str) -> bool:
+    def delete_session(self, session_id: str) -> tuple[bool, list]:
         """Delete a session and all its associated data.
 
         :param str session_id: Unique session ID.
@@ -272,12 +272,20 @@ class SQLiteDB(BaseDB):
             if not kwargs:
                 return False
 
+            allowed_fields = {"name", "video_id", "collection_id", "metadata"}
             update_fields = []
             update_values = []
 
             for key, value in kwargs.items():
+                if key not in allowed_fields:
+                    continue
+                if key == "metadata" and not isinstance(value, str):
+                    value = json.dumps(value)
                 update_fields.append(f"{key} = ?")
                 update_values.append(value)
+
+            if not update_fields:
+                return False
 
             update_fields.append("updated_at = ?")
             update_values.append(int(time.time()))
@@ -292,10 +300,10 @@ class SQLiteDB(BaseDB):
 
             self.cursor.execute(query, update_values)
             self.conn.commit()
-            return True
+            return self.cursor.rowcount > 0
 
-        except Exception as e:
-            logger.error(f"Error updating session {session_id}: {e}")
+        except Exception:
+            logger.exception(f"Error updating session {session_id}")
             return False
 
     def make_session_public(self, session_id: str, is_public: bool) -> bool:
@@ -306,13 +314,12 @@ class SQLiteDB(BaseDB):
                 SET is_public = ?, updated_at = ?
                 WHERE session_id = ?
             """
-            import time
-            current_time = int(time.time() * 1000)
+            current_time = int(time.time())
             self.cursor.execute(query, (is_public, current_time, session_id))
             self.conn.commit()
             return self.cursor.rowcount > 0
-        except Exception as e:
-            logger.exception(f"Error making session public/private: {e}")
+        except Exception:
+            logger.exception("Error making session public/private")
             return False
 
     def get_public_session(self, session_id: str) -> dict:

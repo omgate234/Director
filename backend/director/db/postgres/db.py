@@ -197,7 +197,7 @@ class PostgresDB(BaseDB):
         self.conn.commit()
         return self.cursor.rowcount > 0
 
-    def delete_session(self, session_id: str) -> bool:
+    def delete_session(self, session_id: str) -> tuple[bool, list]:
         failed_components = []
         if not self.delete_conversation(session_id):
             failed_components.append("conversation")
@@ -218,12 +218,20 @@ class PostgresDB(BaseDB):
             if not kwargs:
                 return False
 
+            allowed_fields = {"name", "video_id", "collection_id", "metadata"}
             update_fields = []
             update_values = []
 
             for key, value in kwargs.items():
+                if key not in allowed_fields:
+                    continue
+                if key == "metadata" and not isinstance(value, str):
+                    value = json.dumps(value)
                 update_fields.append(f"{key} = %s")
                 update_values.append(value)
+
+            if not update_fields:
+                return False
 
             update_fields.append("updated_at = %s")
             update_values.append(int(time.time()))
@@ -238,10 +246,10 @@ class PostgresDB(BaseDB):
 
             self.cursor.execute(query, update_values)
             self.conn.commit()
-            return True
+            return self.cursor.rowcount > 0
 
-        except Exception as e:
-            logger.error(f"Error updating session {session_id}: {e}")
+        except Exception:
+            logger.exception(f"Error updating session {session_id}")
             return False
 
     def make_session_public(self, session_id: str, is_public: bool) -> bool:
@@ -252,8 +260,7 @@ class PostgresDB(BaseDB):
                 SET is_public = %s, updated_at = %s
                 WHERE session_id = %s
             """
-            import time
-            current_time = int(time.time() * 1000)
+            current_time = int(time.time())
             self.cursor.execute(query, (is_public, current_time, session_id))
             self.conn.commit()
             return self.cursor.rowcount > 0

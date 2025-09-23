@@ -393,7 +393,7 @@ class Session:
         """Delete the session from the database."""
         return self.db.delete_session(self.session_id)
 
-    def update(self, **kwargs):
+    def update(self, **kwargs) -> bool:
         """Update the session in the database."""
         return self.db.update_session(self.session_id, **kwargs)
 

@@ -49,8 +49,10 @@ class BaseDB(ABC):
         pass
 
     @abstractmethod
-    def delete_session(self, session_id: str) -> bool:
-        """Delete a session from the database."""
+    def delete_session(self, session_id: str) -> tuple[bool, list]:
+        """Delete a session from the database.
+        :return: (success, failed_components)
+        """
         pass
 
     @abstractmethod
