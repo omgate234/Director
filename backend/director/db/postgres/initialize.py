@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS sessions (
     session_id TEXT PRIMARY KEY,
     video_id TEXT,
     collection_id TEXT,
+    name TEXT,
+    is_public BOOLEAN DEFAULT FALSE,
     created_at BIGINT,
     updated_at BIGINT,
     metadata JSONB
@@ -69,6 +71,9 @@ def initialize_postgres():
         cursor.execute(CREATE_CONVERSATIONS_TABLE)
         cursor.execute(CREATE_CONTEXT_MESSAGES_TABLE)
         conn.commit()
+
+        cursor.execute("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS name TEXT")
+        cursor.execute("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE")
         logger.info("PostgreSQL tables created successfully")
     except Exception as e:
         logger.exception(f"Error creating PostgreSQL tables: {e}")

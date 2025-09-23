@@ -393,6 +393,10 @@ class Session:
         """Delete the session from the database."""
         return self.db.delete_session(self.session_id)
 
+    def update(self, **kwargs):
+        """Update the session in the database."""
+        return self.db.update_session(self.session_id, **kwargs)
+
     def emit_event(self, event: BaseEvent, namespace="/chat"):
         """Emits a structured WebSocket event to notify all clients about updates."""
 

@@ -140,6 +140,16 @@ class SessionHandler:
         session = Session(db=self.db, session_id=session_id)
         return session.delete()
 
+    def rename_session(self, session_id, new_name):
+        """Rename a session by updating its name field."""
+        session = Session(db=self.db, session_id=session_id)
+        success = session.update(name=new_name)
+        if success:
+            return {"message": "Session renamed successfully", "session_id": session_id, "name": new_name}
+        else:
+            return {"message": "Failed to rename session"}, 500
+
+
 
 class VideoDBHandler:
     def __init__(self, collection_id="default"):
