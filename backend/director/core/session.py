@@ -208,8 +208,15 @@ class InputMessage(BaseMessage):
     msg_type: MsgType = MsgType.input
 
     def publish(self):
-        """Store the message in the database. for conversation history."""
+        """Store the message in the database and broadcast to session room."""
         self.db.add_or_update_msg_to_conv(**self.model_dump(exclude={"db"}))
+        try:
+            emit("chat", self.model_dump(exclude={"db"}), 
+                 room=self.session_id, 
+                 namespace="/chat")
+            print(f"Broadcasted input message to session room: {self.session_id}")
+        except Exception as e:
+            print(f"Error broadcasting input message to session {self.session_id}: {str(e)}")
 
 
 class OutputMessage(BaseMessage):
