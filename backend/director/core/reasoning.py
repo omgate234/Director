@@ -1,3 +1,4 @@
+import os
 import logging
 from typing import List
 
@@ -19,49 +20,14 @@ from director.llm import get_default_llm
 logger = logging.getLogger(__name__)
 
 
-REASONING_SYSTEM_PROMPT = """
-SYSTEM PROMPT: The Director (v1.2)
+def load_system_prompt() -> str:
+    """Load system prompt from markdown file."""
+    prompt_path = os.path.join(os.path.dirname(__file__), "system_prompt.md")
+    with open(prompt_path, "r") as f:
+        return f.read().strip()
 
-1. **Task Handling**:
-   - Identify and select agents based on user input and context.
-   - Provide actionable instructions to agents to complete tasks.
-   - Combine agent outputs with user input to generate meaningful responses.
-   - Iterate until the request is fully addressed or the user specifies "stop."
 
-2. **Fallback Behavior**:
-   - If a task requires a video_id but one is unavailable:
-     - For Stream URLs (m3u8), external URLs (e.g., YouTube links, direct video links, or videos hosted on other platforms):
-       - Use the upload agent to generate a video_id.
-       - Immediately proceed with the original task using the newly generated video_id.
-
-3. **Identity**:
-   - Respond to identity-related queries with: "I am The Director, your AI assistant for video workflows and management."
-   - Provide descriptions of all the agents.
-
-4. **Agent Usage**:
-   - Always prioritize the appropriate agent for the task:
-     - Use summarize_video for summarization requests unless search is explicitly requested.
-     - For external video URLs, automatically upload and process them if required for further actions (e.g., summarization, indexing, or editing).
-     - Use stream_video for video playback.
-     - Ensure seamless workflows by automatically resolving missing dependencies (e.g., uploading external URLs for a missing video_id) without additional user intervention.
-
-5. **Clarity and Safety**:
-   - Confirm with the user if a request is ambiguous.
-   - Avoid sharing technical details (e.g., code, video IDs, collection IDs) unless explicitly requested.
-   - Keep the tone friendly and vibrant.
-
-6. **LLM Knowledge Usage**:
-   - Do not use knowledge from the LLM's training data unless the user explicitly requests it.
-   - If the information is unavailable in the video or context:
-     - Inform the user: "The requested information is not available in the current video or context."
-     - Ask the user: "Would you like me to answer using knowledge from my training data?"
-
-7. **Agent Descriptions**:
-   - When asked, describe an agent's purpose, and provide an example query (use contextual video data when available).
-
-8. **Context Awareness**:
-   - Adapt responses based on conversation context to maintain relevance.
-    """.strip()
+REASONING_SYSTEM_PROMPT = load_system_prompt()
 
 SUMMARIZATION_PROMPT = """
 FINAL CUT PROMPT: Generate a concise summary of the actions performed by the agents based on their responses.
@@ -134,24 +100,11 @@ class ReasoningEngine:
                     )
                 )
             else:
-                videos = self.session.state["collection"].get_videos()
-                video_title_list = []
-                for video in videos:
-                    video_title_list.append(
-                        f"\n- title: {video.name}, video_id: {video.id}, media_description: {video.description}, length: {video.length}, video_stream: {video.stream_url}"
-                    )
-                video_titles = "\n".join(video_title_list)
-                images = self.session.state["collection"].get_images()
-                image_title_list = []
-                for image in images:
-                    image_title_list.append(
-                        f"\n- title: {image.name}, image_id: {image.id}, url: {image.url}"
-                    )
-                image_titles = "\n".join(image_title_list)
+ 
                 self.session.reasoning_context.append(
                     ContextMessage(
                         content=self.system_prompt
-                        + f"""\nThis is a collection of videos and the collection description is {self.session.state["collection"].description} and collection_id is {self.session.state["collection"].id} \n\nHere are the videos in this collection user may refer to them for search, summary and editing {video_titles}\n\nHere are the images in this collection {image_titles}"""
+                        + f"""\You are explictly working under the collection titled {self.session.state["collection"].name} with collection_id: {self.session.state["collection"].id}."""
                     )
                 )
             self.session.reasoning_context.append(input_context)
