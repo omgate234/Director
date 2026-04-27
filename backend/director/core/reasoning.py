@@ -55,6 +55,8 @@ class ReasoningEngine:
         self.system_prompt = REASONING_SYSTEM_PROMPT
         self.max_iterations = 10
         self.llm = get_default_llm()
+        if self.input_message.model:
+            self.llm.chat_model = self.input_message.model
         self.agents: List[BaseAgent] = []
         self.stop_flag = False
         self.output_message: OutputMessage = self.session.output_message

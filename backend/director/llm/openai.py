@@ -5,7 +5,7 @@ from pydantic import Field, field_validator, FieldValidationInfo
 from pydantic_settings import SettingsConfigDict
 
 
-from director.llm.base import BaseLLM, BaseLLMConfig, LLMResponse, LLMResponseStatus
+from director.llm.base import BaseLLM, BaseLLMConfig, LLMModel, LLMResponse, LLMResponseStatus
 from director.constants import (
     LLMType,
     EnvPrefix,
@@ -148,9 +148,6 @@ class OpenAI(BaseLLM):
         params = {
             "model": self.chat_model,
             "messages": self._format_messages(messages),
-            "temperature": self.temperature,
-            "max_tokens": self.max_tokens,
-            "top_p": self.top_p,
             "stop": stop,
             "timeout": self.timeout,
         }
@@ -188,3 +185,12 @@ class OpenAI(BaseLLM):
             total_tokens=response.usage.total_tokens,
             status=LLMResponseStatus.SUCCESS,
         )
+
+    def list_models(self):
+        """List available OpenAI models."""
+        try:
+            response = self.client.models.list()
+            return [LLMModel(id=model.id, name=model.id) for model in response.data]
+        except Exception as e:
+            print(f"Error listing models: {e}")
+            return [LLMModel(id=m.value, name=m.value) for m in OpenAIChatModel]

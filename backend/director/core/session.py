@@ -199,6 +199,7 @@ class BaseMessage(BaseModel):
     msg_id: str = Field(
         default_factory=lambda: str(datetime.now().timestamp() * 100000)
     )
+    model: Optional[str] = None
 
 
 class InputMessage(BaseMessage):

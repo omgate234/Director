@@ -5,7 +5,7 @@ from enum import Enum
 from pydantic import Field, field_validator, FieldValidationInfo
 
 
-from director.llm.base import BaseLLM, BaseLLMConfig, LLMResponse, LLMResponseStatus
+from director.llm.base import BaseLLM, BaseLLMConfig, LLMModel, LLMResponse, LLMResponseStatus
 from director.constants import (
     LLMType,
 )
@@ -171,3 +171,12 @@ class VideoDBProxy(BaseLLM):
             total_tokens=response.usage.total_tokens,
             status=LLMResponseStatus.SUCCESS,
         )
+
+    def list_models(self):
+        """List available VideoDB Proxy models."""
+        try:
+            response = self.client.models.list()
+            return [LLMModel(id=model.id, name=model.id) for model in response.data]
+        except Exception as e:
+            print(f"Error listing models: {e}")
+            return [LLMModel(id=m.value, name=m.name) for m in OpenAIChatModel]

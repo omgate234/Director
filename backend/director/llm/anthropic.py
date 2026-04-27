@@ -4,7 +4,7 @@ from pydantic import Field, field_validator, FieldValidationInfo
 from pydantic_settings import SettingsConfigDict
 
 from director.core.session import RoleTypes
-from director.llm.base import BaseLLM, BaseLLMConfig, LLMResponse, LLMResponseStatus
+from director.llm.base import BaseLLM, BaseLLMConfig, LLMModel, LLMResponse, LLMResponseStatus
 from director.constants import (
     LLMType,
     EnvPrefix,
@@ -183,3 +183,7 @@ class AnthropicAI(BaseLLM):
             total_tokens=(response.usage.input_tokens + response.usage.output_tokens),
             status=LLMResponseStatus.SUCCESS,
         )
+
+    def list_models(self):
+        """List available Anthropic models."""
+        return [LLMModel(id=m.value, name=m.name) for m in AnthropicChatModel]

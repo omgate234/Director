@@ -4,13 +4,14 @@ from flask import Blueprint, request, current_app as app
 from werkzeug.utils import secure_filename
 
 from director.db import load_db
-from director.handler import ChatHandler, SessionHandler, VideoDBHandler, ConfigHandler
+from director.handler import ChatHandler, SessionHandler, VideoDBHandler, ConfigHandler, LLMHandler
 
 
 agent_bp = Blueprint("agent", __name__, url_prefix="/agent")
 session_bp = Blueprint("session", __name__, url_prefix="/session")
 videodb_bp = Blueprint("videodb", __name__, url_prefix="/videodb")
 config_bp = Blueprint("config", __name__, url_prefix="/config")
+llm_bp = Blueprint("llm", __name__, url_prefix="/llm")
 
 
 @agent_bp.route("/", methods=["GET"], strict_slashes=False)
@@ -260,3 +261,13 @@ def upload_video(collection_id):
 def config_check():
     config_handler = ConfigHandler()
     return config_handler.check()
+
+
+@llm_bp.route("/models", methods=["GET"], strict_slashes=False)
+def get_models():
+    """Get available LLM models."""
+    try:
+        llm_handler = LLMHandler()
+        return llm_handler.get_models()
+    except Exception as e:
+        return {"message": str(e)}, 500

@@ -174,3 +174,13 @@ class ConfigHandler:
             "llm_configured": True,
             "db_configured": db_configured,
         }
+
+
+class LLMHandler:
+    def get_models(self):
+        """Get available models from the default LLM."""
+        from director.llm import get_default_llm
+
+        llm = get_default_llm()
+        models = llm.list_models()
+        return [{"id": m.id, "name": m.name} for m in models]

@@ -1,8 +1,15 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
+
+
+class LLMModel(BaseModel):
+    """Model info returned by list_models."""
+
+    id: str
+    name: Optional[str] = None
 
 
 class LLMResponseStatus:
@@ -67,4 +74,9 @@ class BaseLLM(ABC):
     @abstractmethod
     def chat_completions(self, messages: List[Dict], tools: List[Dict]) -> LLMResponse:
         """Abstract method for chat completions"""
+        pass
+
+    @abstractmethod
+    def list_models(self) -> List[LLMModel]:
+        """Abstract method for listing available models"""
         pass
