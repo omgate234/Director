@@ -8,6 +8,10 @@ logger = logging.getLogger(__name__)
 REFERENCE_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "reference")
 
 TOPICS = {
+    "asset_discovery": {
+        "file": "asset_discovery.md",
+        "description": "Finding assets by name - resolve video/audio/image names to IDs using the /assets API with regex patterns before performing operations",
+    },
     "search": {
         "file": "search.md",
         "description": "Search & indexing - spoken word index, scene index, semantic search, keyword search, search results, compiling clips from search",
@@ -39,6 +43,10 @@ TOPICS = {
     "use_cases": {
         "file": "use-cases.md",
         "description": "Common workflows - highlight reels, searchable libraries, clip extraction, subtitles, social exports, monitoring",
+    },
+    "censor": {
+        "file": "censor.md",
+        "description": "Profanity censoring - detect profanity in transcripts, overlay beep sounds, merge overlapping timestamps, generate clean streams",
     },
 }
 
@@ -77,6 +85,9 @@ class ReferenceAgent(BaseAgent):
                 status=AgentStatus.ERROR,
                 message=f"Unknown topic: {topic}. Available: {list(TOPICS.keys())}",
             )
+
+        self.output_message.actions.append(f"Reading reference: {topic}")
+        self.output_message.push_update()
 
         file_path = os.path.join(REFERENCE_DIR, TOPICS[topic]["file"])
 

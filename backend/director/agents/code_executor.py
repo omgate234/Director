@@ -22,10 +22,24 @@ CODE_EXECUTOR_PARAMETERS = {
     "properties": {
         "code": {
             "type": "string",
-            "description": "Python code to execute. Must set `output` variable to a list of content dicts.",
+            "description": """Python code to execute. Must set `output` variable to a list of content dicts.
+
+Code execution environment:
+- `conn` (VideoDB connection) is pre-defined and available
+- All code runs in a single flat namespace (no separate globals/locals)
+- Standard library imports are allowed (e.g., `import re`, `from videodb import SearchType`)
+
+Gotchas to avoid:
+- Always initialize variables before using them in comprehensions or generator expressions
+- For video names with special characters (|, &, []), prefer keyword-based search over full regex escaping
+- Wrap API calls that may fail (like `get_transcript_text()`) in try/except blocks""",
+        },
+        "progress_message": {
+            "type": "string",
+            "description": "User-friendly message describing what this code does. Examples: 'Finding videos matching \"podcast\"', 'Searching for mentions of AI', 'Trimming video to selected segment', 'Adding subtitles to your video'. Keep it concise and non-technical.",
         },
     },
-    "required": ["code"],
+    "required": ["code", "progress_message"],
 }
 
 
@@ -38,24 +52,39 @@ class CodeExecutorAgent(BaseAgent):
         self.parameters = CODE_EXECUTOR_PARAMETERS
         super().__init__(session=session, **kwargs)
 
-    def run(self, code: str, *args, **kwargs) -> AgentResponse:
+    def run(self, code: str, progress_message: str = "", *args, **kwargs) -> AgentResponse:
         """Execute code and render output."""
+        if progress_message:
+            self.output_message.actions.append(progress_message)
+            self.output_message.push_update()
+
+        self.output_message.content.append(
+            TextContent(
+                text=f"```python\n{code}\n```",
+                status=MsgStatus.success,
+                agent_name=self.agent_name,
+            )
+        )
+        self.output_message.publish()
+
         output = []
         try:
             conn = self.session.state.get("conn")
             if not conn:
                 raise ValueError("No VideoDB connection available")
 
-            exec_globals = {
+            # Use single namespace for both globals and locals.
+            # Separate dicts break comprehensions/generators (they create new scopes
+            # that inherit from globals, not locals, causing NameError).
+            exec_namespace = {
                 "conn": conn,
                 "__builtins__": __builtins__,
             }
-            exec_locals = {}
 
             logger.info(f"Executing code:\n{code}")
-            exec(code, exec_globals, exec_locals)
+            exec(code, exec_namespace)
 
-            output = exec_locals.get("output")
+            output = exec_namespace.get("output")
             if output is None:
                 raise ValueError("Code must set an 'output' variable")
 
@@ -95,11 +124,13 @@ class CodeExecutorAgent(BaseAgent):
 
         for item in output:
             content_type = item.get("type")
+            status_message = item.get("status_message")
 
             if content_type == "text":
                 content = TextContent(
                     text=item.get("text", ""),
                     status=MsgStatus.success,
+                    status_message=status_message,
                     agent_name=self.agent_name,
                 )
                 self.output_message.content.append(content)
@@ -110,6 +141,7 @@ class CodeExecutorAgent(BaseAgent):
                 content = VideoContent(
                     video=VideoData(**video_data),
                     status=MsgStatus.success,
+                    status_message=status_message,
                     agent_name=self.agent_name,
                 )
                 self.output_message.content.append(content)
@@ -120,6 +152,7 @@ class CodeExecutorAgent(BaseAgent):
                 content = VideosContent(
                     videos=videos,
                     status=MsgStatus.success,
+                    status_message=status_message,
                     agent_name=self.agent_name,
                 )
                 self.output_message.content.append(content)
@@ -130,6 +163,7 @@ class CodeExecutorAgent(BaseAgent):
                 content = ImageContent(
                     image=ImageData(**image_data),
                     status=MsgStatus.success,
+                    status_message=status_message,
                     agent_name=self.agent_name,
                 )
                 self.output_message.content.append(content)
@@ -151,6 +185,7 @@ class CodeExecutorAgent(BaseAgent):
                 content = SearchResultsContent(
                     search_results=search_results,
                     status=MsgStatus.success,
+                    status_message=status_message,
                     agent_name=self.agent_name,
                 )
                 self.output_message.content.append(content)

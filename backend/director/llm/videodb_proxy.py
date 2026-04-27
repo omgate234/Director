@@ -15,6 +15,9 @@ class OpenAIChatModel(str, Enum):
     """Enum for OpenAI Chat models"""
 
     GPT4o = "gpt-4o-2024-11-20"
+    BASIC = "basic"
+    PRO = "pro"
+    ULTRA = "ultra"
 
 
 class VideoDBProxyConfig(BaseLLMConfig):
@@ -23,7 +26,7 @@ class VideoDBProxyConfig(BaseLLMConfig):
     llm_type: str = LLMType.VIDEODB_PROXY
     api_key: str = os.getenv("VIDEO_DB_API_KEY")
     api_base: str = os.getenv("VIDEO_DB_BASE_URL", "https://api.videodb.io")
-    chat_model: str = Field(default=OpenAIChatModel.GPT4o)
+    chat_model: str = Field(default=OpenAIChatModel.ULTRA)
     max_tokens: int = 4096
 
     @field_validator("api_key")

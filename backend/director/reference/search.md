@@ -4,7 +4,8 @@ Search allows you to find specific moments inside videos using natural language 
 
 ## Prerequisites
 
-Videos **must be indexed** before they can be searched. Indexing is a one-time operation per video per index type.
+1. **Resolve names to IDs first**: If you have a video name instead of an ID, use the assets API to find it. See [asset_discovery.md](asset_discovery.md).
+2. **Index before searching**: Videos must be indexed before they can be searched. Indexing is a one-time operation per video per index type.
 
 ## Indexing
 

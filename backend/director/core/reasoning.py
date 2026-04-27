@@ -29,21 +29,6 @@ def load_system_prompt() -> str:
 
 REASONING_SYSTEM_PROMPT = load_system_prompt()
 
-SUMMARIZATION_PROMPT = """
-FINAL CUT PROMPT: Generate a concise summary of the actions performed by the agents based on their responses.
-
-1. Provide an overview of the tasks completed by each agent, listing the actions taken and their outcomes.
-2. Exclude individual agent responses from the summary unless explicitly specified to include them.
-3. Ensure the summary is user-friendly, succinct and avoids technical jargon unless requested by the user.
-4. If there were any errors, incomplete tasks, or user confirmations required:
-   - Clearly mention the issue in the summary.
-   - Politely inform the user: "If you encountered any issues or have further questions, please don't hesitate to reach out to our team on [Discord](https://discord.com/invite/py9P639jGz). We're here to help!"
-5. If the user seems dissatisfied or expresses unhappiness:
-   - Acknowledge their concerns in a respectful and empathetic tone.
-   - Include the same invitation to reach out on Discord for further assistance.
-6. End the summary by inviting the user to ask further questions or clarify additional needs.
-
-"""
 
 
 class ReasoningEngine:
@@ -143,7 +128,6 @@ class ReasoningEngine:
         agent = next(
             (agent for agent in self.agents if agent.agent_name == agent_name), None
         )
-        self.output_message.actions.append(f"Running @{agent_name} agent")
         self.output_message.agents.append(agent_name)
         self.output_message.push_update()
         return agent.safe_call(*args, **kwargs)
@@ -238,33 +222,12 @@ class ReasoningEngine:
                         role=RoleTypes.assistant,
                     )
                 )
-                if self.iterations == self.max_iterations - 1:
-                    # Direct response case
-                    self.summary_content.status_message = "Here is the response"
-                    self.summary_content.text = llm_response.content
-                    self.summary_content.status = MsgStatus.success
+                self.summary_content.text = llm_response.content
+                if self.failed_agents:
+                    self.summary_content.status = MsgStatus.error
                 else:
-                    self.session.reasoning_context.append(
-                        ContextMessage(
-                            content=SUMMARIZATION_PROMPT.format(
-                                query=self.input_message.content
-                            ),
-                            role=RoleTypes.system,
-                        )
-                    )
-                    summary_response = self.llm.chat_completions(
-                        messages=[
-                            message.to_llm_msg()
-                            for message in self.get_current_run_context()
-                        ]
-                    )
-                    self.session.reasoning_context.pop()
-                    self.summary_content.text = summary_response.content
-                    if self.failed_agents:
-                        self.summary_content.status = MsgStatus.error
-                    else:
-                        self.summary_content.status = MsgStatus.success
-                    self.summary_content.status_message = "Final Cut"
+                    self.summary_content.status = MsgStatus.success
+                self.summary_content.status_message = ""
                 self.output_message.status = MsgStatus.success
                 self.output_message.publish()
                 print("-" * 40, "Stopping", "-" * 40)
