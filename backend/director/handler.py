@@ -59,6 +59,7 @@ class ChatHandler:
         input_message = InputMessage(db=self.db, **message)
         input_message.publish()
 
+
         try:
             self.add_videodb_state(session)
             agents = [agent(session=session) for agent in self.agents]
