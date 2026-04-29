@@ -90,7 +90,6 @@ class CodeExecutorAgent(BaseAgent):
 
             content_list = self._render_output(output)
 
-            self.output_message.status = MsgStatus.success
             self.output_message.publish()
 
             return AgentResponse(
@@ -109,7 +108,6 @@ class CodeExecutorAgent(BaseAgent):
                     agent_name=self.agent_name,
                 )
             )
-            self.output_message.status = MsgStatus.error
             self.output_message.publish()
 
             return AgentResponse(

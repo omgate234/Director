@@ -70,6 +70,35 @@ video.index_scenes(
 )
 ```
 
+### Scene Extraction (`video.extract_scenes`)
+
+`video.extract_scenes()` extracts scene boundaries without running an LLM description pass. It **fails if scenes have already been extracted for this video** — the API returns an error mentioning that extraction is already done.
+
+When the user asks "show me the scenes", prefer re-using any existing extraction over calling `extract_scenes()` blindly:
+
+```python
+from videodb import SceneExtractionType
+
+scenes = []
+try:
+    scene_coll = video.extract_scenes(extraction_type=SceneExtractionType.shot_based)
+    scenes = list(scene_coll)
+except Exception as e:
+    msg = str(e).lower()
+    if "already" in msg and ("extract" in msg or "scene" in msg):
+        # Extraction already exists — re-read it via the existing scene index
+        m = re.search(r"id\s+([a-f0-9-]+)", str(e), re.I)
+        if m:
+            # Use the existing scene index instead of creating a new one
+            existing_index_id = m.group(1)
+            # (downstream: search/list against existing_index_id)
+        else:
+            # No ID in the error; fall back to whatever get_scenes exposes on the video
+            scenes = getattr(video, "scenes", []) or []
+    else:
+        raise
+```
+
 ## Search Types
 
 ### Semantic Search

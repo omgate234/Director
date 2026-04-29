@@ -112,11 +112,15 @@ image = coll.get_image("img-def456")
 
 ### ID Prefixes
 
-| Type | Prefix | Example |
-|------|--------|---------|
-| Video | `m-` | `m-abc123` |
-| Audio | `a-` | `a-xyz789` |
-| Image | `img-` | `img-def456` |
+VideoDB asset IDs follow a strict shape. The canonical form is `{type}-z-{identifier}`. If the user's reference does not match this shape exactly, treat it as a NAME and resolve it through the `/assets` API — even if it looks like a UUID or a structured string.
+
+| Type | Canonical ID shape | Example |
+|------|--------------------|---------|
+| Video | starts with `m-z-` | `m-z-019dce76-8d29-7ed1-8dfa-d5e2032d9d41` |
+| Audio | starts with `a-z-` | `a-z-019db580-34ee-7a0c-8fd4-6e99b65f4821` |
+| Image | starts with `img-z-` | `img-z-019db580-5dd2-7b11-a2c9-4cd3f71e9028` |
+
+**A bare UUID is never a valid ID.** Values such as `9f3e9e1a-dbe8-4654-b5e8-d63a025102a7`, `local-56b3192e-e664-…`, `genai-video-70e130d9-…` are all NAMES, not IDs. Calling `get_video()` on them will raise `Video not found`.
 
 ## Workflow: Resolve Name to Asset
 
@@ -210,18 +214,20 @@ video.index_spoken_words(force=True)
 | `coll.get_video_by_name("...")` | Method doesn't exist | Use assets API with `name_pattern` |
 | `coll.get_video("My Video Title")` | Names are not IDs | Search first, then use returned ID |
 | `for v in coll.get_videos(): if v.name == ...` | Inefficient, doesn't scale | Use assets API with `name_pattern` |
-| `coll.get_video("local-xxx")` | Invalid ID format | Only `m-`, `a-`, `img-` prefixes are valid |
+| `coll.get_video("local-xxx")` | Invalid ID format | Only `m-z-…`, `a-z-…`, `img-z-…` are valid IDs |
+| `coll.get_video("<uuid-only>")` | A bare UUID is not an ID | Even if it looks structured — resolve it as a name |
+| `coll.get_video("genai-video-xxx")` | Not a VideoDB ID | Resolve it as a name |
 
 ### Invalid ID Formats
 
-These will always fail:
+These will always fail if passed to `get_video()` / `get_audio()` / `get_image()` — they are NAMES, not IDs, and must be resolved via the `/assets` API first:
 
-| Format | Problem |
-|--------|---------|
-| `local-xxx` | Not a valid prefix |
-| `genai-video-xxx` | Temporary generation ID, may not persist |
-| `My Video Title` | Names are not IDs |
-| `3_idiots` | File names are not IDs |
+| Format | Why it's not an ID |
+|--------|--------------------|
+| `local-xxx` | Not a VideoDB ID prefix |
+| `genai-video-xxx`, `genai-audio-xxx`, `genai-xxx` | Pre-upload identifier, not persisted |
+| `9f3e9e1a-dbe8-4654-…` (bare UUID) | A UUID alone is not a VideoDB ID. The canonical shape is `m-z-…` / `a-z-…` / `img-z-…`. |
+| `My Video Title`, `3_idiots`, `[Dubbed in hi] …` | Human titles / filenames |
 
 ## Examples
 
@@ -324,22 +330,37 @@ def get_search_keywords(name):
 # Usage
 target_name = "How to Feel Energized & Sleep Better | Dr. Andrew Huberman"
 keywords = get_search_keywords(target_name)  # ['Feel', 'Energized', 'Sleep']
+```
 
-# Build simpler pattern
-pattern = f"(?i).*{'.*'.join(keywords)}.*"  # (?i).*Feel.*Energized.*Sleep.*
+### CRITICAL: Keyword ordering
+
+The naive concatenation `'.*'.join(keywords)` produces an **order-dependent** pattern — it only matches if the keywords appear in the video name in that exact order:
+
+```python
+# WRONG — only matches "...Feel...Energized...Sleep..." in that order.
+# Fails on titles like "How to Feel Energized & Sleep Better | Dr. Huberman"
+# when keywords were extracted as ["Huberman", "Energized", "Sleep"].
+pattern = f"(?i).*{'.*'.join(keywords)}.*"
+```
+
+Use **regex lookaheads** for order-agnostic matching:
+
+```python
+# CORRECT — matches all keywords in any order.
+pattern = "(?i)" + "".join(f"(?=.*{re.escape(k)})" for k in keywords) + ".*"
 ```
 
 ### Fallback Strategy
 
-Try exact match first, fall back to keyword search:
+Try exact match first, fall back to order-agnostic keyword search:
 
 ```python
 import re
 
 def find_asset_by_name(conn, collection_id, name, asset_type="video"):
     """Find asset with fallback for special characters."""
-    
-    # Strategy 1: Try escaped pattern (works for simple names)
+
+    # Strategy 1: Escaped full-name pattern (works for simple names)
     try:
         escaped = re.escape(name)
         result = conn.get(path="/assets", params={
@@ -352,13 +373,14 @@ def find_asset_by_name(conn, collection_id, name, asset_type="video"):
             return result["assets"]
     except Exception:
         pass  # Pattern rejected, try fallback
-    
-    # Strategy 2: Keyword-based search
+
+    # Strategy 2: Order-agnostic keyword search
     words = re.findall(r'\b[a-zA-Z0-9]{4,}\b', name)
     if words:
         # Use longest/most distinctive words
-        keywords = sorted(words, key=len, reverse=True)[:2]
-        pattern = f"(?i).*{'.*'.join(keywords)}.*"
+        keywords = sorted(words, key=len, reverse=True)[:3]
+        # Lookaheads match keywords in ANY order
+        pattern = "(?i)" + "".join(f"(?=.*{re.escape(k)})" for k in keywords) + ".*"
         result = conn.get(path="/assets", params={
             "collection_id": collection_id,
             "asset_type": asset_type,
@@ -367,7 +389,7 @@ def find_asset_by_name(conn, collection_id, name, asset_type="video"):
         })
         if result.get("assets"):
             return result["assets"]
-    
+
     return []
 ```
 
@@ -382,15 +404,17 @@ def find_asset_by_name(conn, collection_id, name, asset_type="video"):
 
 ### Best Practice
 
-For names with special characters, **prefer keyword extraction over full regex escaping**:
+For names with special characters, **prefer order-agnostic keyword matching over full regex escaping**:
 
 ```python
-# AVOID: Full name with re.escape() - may fail
+# AVOID: Full name with re.escape() - may fail on names with | [] ()
 pattern = f"(?i).*{re.escape(full_name)}.*"
 
-# PREFER: Keyword-based matching - more reliable
-keywords = ["Huberman", "Sleep", "Energy"]
-pattern = f"(?i).*Huberman.*"
+# AVOID: Joined keywords - order-dependent, fails if title has them in a different order
+pattern = f"(?i).*{'.*'.join(keywords)}.*"
+
+# PREFER: Lookaheads - match all keywords in any order
+pattern = "(?i)" + "".join(f"(?=.*{re.escape(k)})" for k in keywords) + ".*"
 ```
 
 ## Tips

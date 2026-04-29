@@ -30,7 +30,23 @@ TOPICS = {
     },
     "api": {
         "file": "api-reference.md",
-        "description": "Complete API reference - all methods on Connection, Collection, Video, Audio, Image objects",
+        "description": "API reference index - cross-cutting enums (SearchType, SceneExtractionType, SubtitleStyle, TextStyle, IndexType, MediaType, Segmenter, SegmentationType, TranscodeMode, ResizeMode, ReframeMode) and exceptions (AuthenticationError, InvalidRequestError, RequestTimeoutError, SearchError, VideodbError). For methods on Connection/Collection/Video/Audio/Image, use the collection/video/audio/image topics instead",
+    },
+    "collection": {
+        "file": "collection.md",
+        "description": "Connection & Collection reference - connect, get_collection, upload, transcode, VideoConfig, AudioConfig, collection methods (search, generate_*, record_meeting, connect_rtstream), Meeting object",
+    },
+    "video": {
+        "file": "video.md",
+        "description": "Video object reference - properties, methods (generate_stream, search, add_subtitle, get_transcript, index_spoken_words, index_scenes, index_visuals, index_audio, extract_scenes, reframe, clip, insert_video, download), Reframe, SearchResult, Shot",
+    },
+    "audio": {
+        "file": "audio.md",
+        "description": "Audio object reference - properties, methods (generate_url, get_transcript, generate_transcript, delete), generating audio (music, sound effect, voice), using audio in timelines",
+    },
+    "image": {
+        "file": "image.md",
+        "description": "Image object reference - properties, methods (generate_url, delete), generating images, thumbnails, using images in timelines",
     },
     "rtstream": {
         "file": "rtstream.md",

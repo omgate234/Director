@@ -53,7 +53,7 @@ class ReasoningEngine:
         self.input_message = input_message
         self.session = session
         self.system_prompt = REASONING_SYSTEM_PROMPT
-        self.max_iterations = 10
+        self.max_iterations = 50
         self.llm = get_default_llm()
         if self.input_message.model:
             self.llm.chat_model = self.input_message.model
