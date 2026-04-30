@@ -71,6 +71,7 @@ class BashExecutorAgent(BaseAgent):
                 text=f"```bash\n$ {command}\n```",
                 status=MsgStatus.success,
                 agent_name=self.agent_name,
+                status_message="Executing bash command...",
             )
         )
         self.output_message.publish()
@@ -110,16 +111,6 @@ class BashExecutorAgent(BaseAgent):
                 if success
                 else f"Command exited with code {return_code}"
             )
-
-            self.output_message.content.append(
-                TextContent(
-                    text="\n\n".join(parts),
-                    status=MsgStatus.success if success else MsgStatus.error,
-                    status_message=status_message,
-                    agent_name=self.agent_name,
-                )
-            )
-            self.output_message.publish()
 
             return AgentResponse(
                 status=AgentStatus.SUCCESS if success else AgentStatus.ERROR,
