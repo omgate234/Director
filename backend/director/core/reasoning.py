@@ -13,6 +13,7 @@ from director.core.session import (
     TextContent,
     MsgStatus,
 )
+from director.core.skills import format_skills_for_prompt, load_skills
 from director.llm.base import LLMResponse
 from director.llm import get_default_llm
 
@@ -28,6 +29,18 @@ def load_system_prompt() -> str:
 
 
 REASONING_SYSTEM_PROMPT = load_system_prompt()
+
+
+def build_system_prompt() -> str:
+    """Compose the system prompt with any discovered skills appended.
+
+    Skills are re-scanned each time so adding a new skill folder takes effect
+    on the next chat session without a server restart.
+    """
+    skills_block = format_skills_for_prompt(load_skills())
+    if not skills_block:
+        return REASONING_SYSTEM_PROMPT
+    return f"{REASONING_SYSTEM_PROMPT}\n{skills_block}"
 
 
 
@@ -52,7 +65,7 @@ class ReasoningEngine:
         """
         self.input_message = input_message
         self.session = session
-        self.system_prompt = REASONING_SYSTEM_PROMPT
+        self.system_prompt = build_system_prompt()
         self.max_iterations = 50
         self.llm = get_default_llm()
         if self.input_message.model:

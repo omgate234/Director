@@ -3,6 +3,7 @@ import logging
 
 from director.agents.code_executor import CodeExecutorAgent
 from director.agents.reference import ReferenceAgent
+from director.agents.bash_executor import BashExecutorAgent
 
 
 from director.core.session import Session, InputMessage, MsgStatus
@@ -25,6 +26,7 @@ class ChatHandler:
         self.agents = [
             ReferenceAgent,
             CodeExecutorAgent,
+            BashExecutorAgent,
         ]
 
     def add_videodb_state(self, session):
