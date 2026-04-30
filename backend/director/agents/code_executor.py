@@ -24,6 +24,9 @@ CODE_EXECUTOR_PARAMETERS = {
             "type": "string",
             "description": """Python code to execute. Must set `output` variable to a list of content dicts.
 
+How you read results back:
+- The ONLY way to surface a value from this script to yourself (and to the user) is by assigning it into the `output` variable. `print(...)`, `logging`, stdout, and stderr are NOT captured and NOT returned — you will not see them. If you want to inspect an intermediate value (an asset ID, a video's length, a count of matches, etc.), put it into `output` as a text content item.
+
 Code execution environment:
 - `conn` (VideoDB connection) is pre-defined and available
 - All code runs in a single flat namespace (no separate globals/locals)
