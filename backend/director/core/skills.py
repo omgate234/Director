@@ -24,9 +24,7 @@ from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-# Resolve absolute path to ``director/skills`` relative to this file's location
-# (``director/core/skills.py`` → ``../skills``).
-SKILLS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "skills"))
+SKILLS_DIR = os.path.expanduser("~/.agents/skills")
 
 SKILL_FILENAME = "SKILL.md"
 MAX_NAME_LENGTH = 64
