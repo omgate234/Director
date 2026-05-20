@@ -2,7 +2,6 @@ import os
 import logging
 
 from director.agents.code_executor import CodeExecutorAgent
-from director.agents.reference import ReferenceAgent
 from director.agents.bash_executor import BashExecutorAgent
 
 
@@ -22,9 +21,7 @@ class ChatHandler:
     def __init__(self, db, **kwargs):
         self.db = db
 
-        # Two agents: reference for docs, code_executor for running code
         self.agents = [
-            ReferenceAgent,
             CodeExecutorAgent,
             BashExecutorAgent,
         ]

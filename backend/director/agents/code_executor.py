@@ -17,6 +17,176 @@ from director.core.session import (
 logger = logging.getLogger(__name__)
 
 
+OUTPUT_FORMAT_INSTRUCTIONS = '''
+## Output Format (MANDATORY)
+
+Your code MUST set an `output` variable. This is a **strict contract** - the system will fail if the format is wrong.
+
+```python
+output: list[dict]  # REQUIRED - must be a list of content dicts
+```
+
+Each item in `output` MUST have a `type` field and the corresponding data field. Here are the **exact schemas**:
+
+**Status Message:** Every content item should include a `status_message` - a brief, user-friendly title displayed above the content. Examples:
+- "Found 3 matching videos"
+- "Your trimmed video is ready"
+- "Search results for 'artificial intelligence'"
+- "Generated thumbnail"
+
+### TextContent
+```python
+{
+    "type": "text",           # REQUIRED: literal "text"
+    "text": str,              # REQUIRED: the message to display (Markdown supported)
+    "status_message": str     # RECOMMENDED: title shown above content (e.g., "Asset search results")
+}
+```
+
+**Markdown Support:** The `text` field supports full GitHub-flavored Markdown - use headers, lists, tables, code blocks, bold, italic, links, etc. for rich formatting.
+
+**Best Practice:** Use a single text block with full Markdown formatting rather than multiple text blocks. This creates a cleaner, more readable display.
+
+```python
+# GOOD: Single text block with Markdown
+output = [{
+    "type": "text",
+    "text": """## Upload Complete
+
+Your video has been processed successfully.
+
+| Property | Value |
+|----------|-------|
+| Name | My Video |
+| Duration | 120s |
+| ID | m-abc123 |
+
+**Next steps:** You can now search, edit, or add subtitles to this video."""
+}]
+
+# AVOID: Multiple fragmented text blocks
+output = [
+    {"type": "text", "text": "Upload Complete"},
+    {"type": "text", "text": "Your video has been processed."},
+    {"type": "text", "text": "Duration: 120s"}
+]
+```
+
+### VideoContent
+```python
+{
+    "type": "video",          # REQUIRED: literal "video"
+    "status_message": str,    # RECOMMENDED: e.g., "Your edited video", "Uploaded successfully"
+    "video": {                # REQUIRED: video data object
+        "stream_url": str,    # REQUIRED: HLS stream URL
+        "name": str,          # OPTIONAL: display name
+        "id": str,            # OPTIONAL: video ID (m-xxx)
+        "length": float,      # OPTIONAL: duration in seconds
+        "thumbnail_url": str, # OPTIONAL: thumbnail image URL
+        "collection_id": str, # OPTIONAL: collection ID
+        "description": str    # OPTIONAL: video description
+    }
+}
+```
+
+### VideosContent (multiple videos)
+```python
+{
+    "type": "videos",         # REQUIRED: literal "videos"
+    "status_message": str,    # RECOMMENDED: e.g., "12 videos in your collection"
+    "videos": [               # REQUIRED: list of video objects
+        {
+            "stream_url": str,    # REQUIRED
+            "name": str,          # OPTIONAL
+            "id": str,            # OPTIONAL
+            "length": float,      # OPTIONAL
+            "thumbnail_url": str  # OPTIONAL
+        },
+        # ... more videos
+    ]
+}
+```
+
+### ImageContent
+```python
+{
+    "type": "image",          # REQUIRED: literal "image"
+    "status_message": str,    # RECOMMENDED: e.g., "Generated thumbnail", "Extracted frame at 1:30"
+    "image": {                # REQUIRED: image data object
+        "url": str,           # REQUIRED: image URL - use image.generate_url() for signed URL
+        "name": str,          # OPTIONAL: display name
+        "id": str,            # OPTIONAL: image ID (i-xxx)
+        "collection_id": str  # OPTIONAL
+    }
+}
+```
+
+**Note:** Always use `image.generate_url()` to get the displayable URL, not `image.url` directly.
+
+### SearchResultsContent
+```python
+{
+    "type": "search_results",     # REQUIRED: literal "search_results"
+    "status_message": str,        # RECOMMENDED: e.g., "Found 5 mentions of 'AI'", "Search results"
+    "search_results": [           # REQUIRED: list of search result objects (one per video)
+        {
+            "video_id": str,      # REQUIRED: video ID (m-xxx)
+            "stream_url": str,    # REQUIRED: compiled clip stream URL for this video's shots
+            "duration": float,    # REQUIRED: video duration in seconds — use video.length (source of truth)
+            "video_title": str,   # OPTIONAL: video name
+            "shots": [            # REQUIRED: list of matched shots from this video
+                {
+                    "start": float,       # REQUIRED: start time in seconds
+                    "end": float,         # REQUIRED: end time in seconds
+                    "text": str,          # REQUIRED: transcript/description text
+                    "search_score": float # REQUIRED: relevance score 0-1
+                }
+            ]
+        },
+        # For collection search: additional video results...
+    ]
+}
+```
+
+**IMPORTANT:** `duration` is REQUIRED. Use `video.length` as the source of truth. In collection search, where you only have `Shot` objects, `shot.video_length` exposes the same value for the shot's parent video.
+
+**Note:** For collection search, results may span multiple videos. Group shots by `video_id` and create one entry per video in `search_results`.
+
+### Example: Correct output
+```python
+# Single video
+output = [
+    {"type": "video", "status_message": "Here is your video", "video": {"stream_url": video.stream_url, "name": video.name, "id": video.id}}
+]
+
+# Text message
+output = [
+    {"type": "text", "status_message": "Upload status", "text": "Upload complete!"}
+]
+
+# Multiple content items
+output = [
+    {"type": "text", "status_message": "Search summary", "text": "Found 3 matches:"},
+    {"type": "search_results", "status_message": "Matching shots", "search_results": [...]}
+]
+```
+
+### Common mistakes (will cause errors)
+```python
+# WRONG: missing "type" field
+output = [{"video": {...}}]
+
+# WRONG: wrong type name
+output = [{"type": "vid", "video": {...}}]
+
+# WRONG: data field doesn't match type
+output = [{"type": "video", "videos": [...]}]  # should be "video" not "videos"
+
+# WRONG: output is not a list
+output = {"type": "text", "text": "..."}  # must be wrapped in list
+```
+'''
+
 CODE_EXECUTOR_PARAMETERS = {
     "type": "object",
     "properties": {
@@ -35,7 +205,9 @@ Code execution environment:
 Gotchas to avoid:
 - Always initialize variables before using them in comprehensions or generator expressions
 - For video names with special characters (|, &, []), prefer keyword-based search over full regex escaping
-- Wrap API calls that may fail (like `get_transcript_text()`) in try/except blocks""",
+- Wrap API calls that may fail (like `get_transcript_text()`) in try/except blocks
+"""
+            + OUTPUT_FORMAT_INSTRUCTIONS,
         },
         "progress_message": {
             "type": "string",
