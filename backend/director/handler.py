@@ -123,6 +123,20 @@ class VideoDBHandler:
         """Get a video by ID."""
         return self.videodb_tool.get_video(video_id)
 
+    def get_transcript(self, video_id):
+        """Return both text and segmented transcript, indexing on demand."""
+        try:
+            return {
+                "text": self.videodb_tool.get_transcript(video_id),
+                "segments": self.videodb_tool.get_transcript(video_id, text=False),
+            }
+        except Exception:
+            self.videodb_tool.index_spoken_words(video_id)
+            return {
+                "text": self.videodb_tool.get_transcript(video_id),
+                "segments": self.videodb_tool.get_transcript(video_id, text=False),
+            }
+
     def delete_video(self, video_id):
         """Delete a specific video by its ID."""
         return self.videodb_tool.delete_video(video_id)
@@ -138,6 +152,11 @@ class VideoDBHandler:
     def get_videos(self):
         """Get all videos in a collection."""
         return self.videodb_tool.get_videos()
+
+    def generate_video_stream(self, video_id, timeline):
+        """Generate a stream URL from a kept-ranges timeline like [[s,e], ...]."""
+        stream_url = self.videodb_tool.generate_video_stream(video_id, timeline)
+        return {"stream_url": stream_url}
 
     def get_audio(self, audio_id):
         """Get a audio by ID."""

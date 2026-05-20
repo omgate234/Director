@@ -257,6 +257,91 @@ def upload_video(collection_id):
         return {"message": str(e)}, 500
 
 
+@videodb_bp.route(
+    "/collection/<collection_id>/video/<video_id>/transcript", methods=["GET"]
+)
+def get_video_transcript(collection_id, video_id):
+    """Fetch a video's transcript, indexing spoken words first if needed."""
+    try:
+        videodb = VideoDBHandler(collection_id)
+        return videodb.get_transcript(video_id)
+    except Exception as e:
+        return {"message": str(e)}, 500
+
+
+@videodb_bp.route(
+    "/collection/<collection_id>/video/<video_id>/timeline-edit", methods=["POST"]
+)
+def timeline_edit_video(collection_id, video_id):
+    """Generate a stream URL by keeping only the given timeline ranges of a video."""
+    try:
+        if not collection_id:
+            return {"message": "Collection ID is required"}, 400
+        if not video_id:
+            return {"message": "Video ID is required"}, 400
+
+        body = request.get_json(silent=True) or {}
+        timeline = body.get("timeline")
+
+        if not isinstance(timeline, list) or not timeline:
+            return {"message": "timeline must be a non-empty list"}, 400
+        for pair in timeline:
+            if (
+                not isinstance(pair, list)
+                or len(pair) != 2
+                or not all(isinstance(x, (int, float)) and not isinstance(x, bool) for x in pair)
+                or pair[0] >= pair[1]
+            ):
+                return {"message": f"invalid timeline range: {pair}"}, 400
+
+        videodb = VideoDBHandler(collection_id)
+        return videodb.generate_video_stream(video_id, timeline), 200
+    except Exception as e:
+        return {"message": str(e)}, 500
+
+
+@videodb_bp.route("/collection/<collection_id>/chat_video_upload", methods=["POST"])
+def upload_chat_video(collection_id):
+    """Upload a stream URL from a chat VideoContent and hydrate the stored output message."""
+    try:
+        body = request.json or {}
+        session_id = body["session_id"]
+        msg_id = body["msg_id"]
+        content_index = body["content_index"]
+        stream_url = body["stream_url"]
+        name = body.get("name")
+
+        videodb = VideoDBHandler(collection_id)
+        media = videodb.upload(
+            source=stream_url, source_type="url", media_type="video", name=name,
+        )
+
+        db = load_db(os.getenv("SERVER_DB_TYPE", os.getenv("DB_TYPE", "sqlite")))
+        msg = next(
+            (m for m in db.get_conversations(session_id) if m["msg_id"] == msg_id),
+            None,
+        )
+        if msg is None:
+            return {"message": "message not found"}, 404
+
+        msg["content"][content_index]["video"].update({
+            "id": media["id"],
+            "collection_id": media["collection_id"],
+            "name": media["name"],
+            "stream_url": media["stream_url"],
+            "player_url": media.get("player_url"),
+            "thumbnail_url": media.get("thumbnail_url"),
+            "length": media.get("length"),
+            "description": media.get("description"),
+        })
+        db.add_or_update_msg_to_conv(**msg)
+        return media
+    except KeyError as e:
+        return {"message": f"missing field: {e.args[0]}"}, 400
+    except Exception as e:
+        return {"message": str(e)}, 500
+
+
 @config_bp.route("/check", methods=["GET"])
 def config_check():
     config_handler = ConfigHandler()

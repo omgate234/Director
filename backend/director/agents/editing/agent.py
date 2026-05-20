@@ -974,9 +974,13 @@ class EditingAgent(BaseAgent):
                 and self.editing_response.status == AgentStatus.SUCCESS
             ):
                 stream_url = self.editing_response.data.get("stream_url")
+                player_url = self.editing_response.data.get("player_url")
 
                 if stream_url:
-                    video_content.video = VideoData(stream_url=stream_url)
+                    video_content.video = VideoData(
+                        stream_url=stream_url,
+                        player_url=player_url,
+                    )
                     video_content.status = MsgStatus.success
                     video_content.status_message = (
                         "Editing instructions executed successfully."
